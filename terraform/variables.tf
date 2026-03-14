@@ -8,3 +8,9 @@ variable "db_password" {
   type        = string
   sensitive   = true # Isso impede que a senha apareça nos logs do Terraform
 }
+
+variable "aws_region" {
+  description = "Região da AWS"
+  type        = string
+  default     = "us-east-1"
+}
