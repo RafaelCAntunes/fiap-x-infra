@@ -6,6 +6,16 @@ terraform {
   }
 }
 
+resource "aws_cloudwatch_log_group" "worker_logs" {
+  name              = "/ecs/api-task"
+  retention_in_days = 7
+}
+
+resource "aws_cloudwatch_log_group" "api_logs" {
+  name              = "/ecs/worker-task"
+  retention_in_days = 7
+}
+
 resource "aws_iam_role" "ecs_execution_role" {
   name = "ecs_task_execution_role"
 
@@ -170,6 +180,14 @@ resource "aws_ecs_task_definition" "api_task" {
       { name = "SQS_QUEUE_URL", value = aws_sqs_queue.video_queue.id },
       { name = "APP_ENV", value = "production" }
     ]
+    logConfiguration = {
+    logDriver = "awslogs"
+    options = {
+      "awslogs-group"         = "/ecs/api-task"
+      "awslogs-region"        = "us-east-1"
+      "awslogs-stream-prefix" = "api"
+    }
+  }
   }])
 }
 
@@ -217,6 +235,14 @@ resource "aws_ecs_task_definition" "worker_task" {
       { name = "SQS_QUEUE_URL", value = aws_sqs_queue.video_queue.id },
       { name = "APP_ENV", value = "production" }
     ]
+    logConfiguration = {
+    logDriver = "awslogs"
+    options = {
+      "awslogs-group"         = "/ecs/worker-task"
+      "awslogs-region"        = "us-east-1"
+      "awslogs-stream-prefix" = "worker"
+    }
+  }
   }])
 }
 
