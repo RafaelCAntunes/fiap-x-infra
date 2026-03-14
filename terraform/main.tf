@@ -1,3 +1,11 @@
+terraform {
+  backend "s3" {
+    bucket = "tf-state-fiap-x-bucket" 
+    key    = "state/terraform.tfstate"
+    region = "us-east-1"
+  }
+}
+
 provider "aws" {
   region = var.aws_region
 }
@@ -155,6 +163,7 @@ resource "aws_ecs_service" "worker_service" {
 
 
 resource "aws_appautoscaling_target" "worker_target" {
+    depends_on = [aws_ecs_service.worker_service]
   max_capacity       = 10
   min_capacity       = 1
   resource_id        = "service/fiap-cluster/worker-service"
