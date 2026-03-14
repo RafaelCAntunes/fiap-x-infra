@@ -131,15 +131,72 @@ resource "aws_ecs_cluster" "fiap_cluster" {
   name = "fiap-cluster"
 }
 
-resource "aws_ecs_task_definition" "worker_task" {
-  family                   = "worker-task"
+resource "aws_ecs_task_definition" "api_task" {
+  family                   = "api-task"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
   cpu                      = "256"
   memory                   = "512"
   container_definitions    = jsonencode([{
+    name  = "api"
+    image = "877270730152.dkr.ecr.us-east-1.amazonaws.com/fiap-x-api:latest" # Placeholder
+    portMappings = [{ containerPort = 8080, hostPort = 8080 }]
+    environment = [
+      { name = "DB_HOST", value = aws_db_instance.postgres.address },
+      { name = "DB_NAME", value = "fiap_x_video_db" },
+      { name = "DB_USER", value = var.db_username },
+      { name = "DB_PASSWORD", value = var.db_password },
+      { name = "S3_BUCKET_NAME", value = aws_s3_bucket.video_bucket.bucket },
+      { name = "SQS_QUEUE_URL", value = aws_sqs_queue.video_queue.id },
+      { name = "APP_ENV", value = "production" }
+    ]
+  }])
+}
+
+resource "aws_ecs_service" "api_service" {
+  name            = "api-service"
+  cluster         = aws_ecs_cluster.fiap_cluster.id
+  task_definition = aws_ecs_task_definition.api_task.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = data.aws_subnets.default.ids
+    assign_public_ip = true
+    security_groups  = [aws_security_group.fiap_sg.id]
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.api_tg.arn
+    container_name   = "api"
+    container_port   = 8080
+  }
+
+  lifecycle {
+    ignore_changes = [task_definition, desired_count]
+  }
+}
+
+
+resource "aws_ecs_task_definition" "worker_task" {
+  family                   = "worker-task"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "512" 
+  memory                   = "1024"
+  
+  container_definitions    = jsonencode([{
     name  = "worker"
-    image = "hello-world" # so um placeholder 
+    image = "877270730152.dkr.ecr.us-east-1.amazonaws.com/fiap-x-worker:latest"
+    environment = [
+      { name = "DB_HOST", value = aws_db_instance.postgres.address },
+      { name = "DB_NAME", value = "fiap_x_video_db" },
+      { name = "DB_USER", value = var.db_username },
+      { name = "DB_PASSWORD", value = var.db_password },
+      { name = "S3_BUCKET_NAME", value = aws_s3_bucket.video_bucket.bucket },
+      { name = "SQS_QUEUE_URL", value = aws_sqs_queue.video_queue.id },
+      { name = "APP_ENV", value = "production" }
+    ]
   }])
 }
 
@@ -147,7 +204,7 @@ resource "aws_ecs_service" "worker_service" {
   name            = "worker-service"
   cluster         = aws_ecs_cluster.fiap_cluster.id
   task_definition = aws_ecs_task_definition.worker_task.arn
-  desired_count   = 1
+  desired_count   = 1 
   launch_type     = "FARGATE"
 
   network_configuration {
