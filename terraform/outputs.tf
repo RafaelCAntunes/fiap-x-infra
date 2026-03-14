@@ -17,7 +17,3 @@ output "alb_dns_link" {
   value = aws_lb.api_alb.dns_name
   description = "link para acessar API"
 }
-
-output "rds_endpoint" {
-  value = aws_db_instance.postgres.address
-}
