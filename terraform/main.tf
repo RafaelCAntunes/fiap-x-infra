@@ -66,7 +66,7 @@ resource "aws_sqs_queue" "video_queue" {
 resource "aws_db_instance" "postgres" {
   allocated_storage      = 20
   engine                 = "postgres"
-  engine_version         = "16.1"
+  engine_version         = "16"
   instance_class         = "db.t3.micro"
   db_name                = "fiap_x_video_db"
   username               = var.db_username
@@ -122,6 +122,37 @@ resource "aws_lb_listener" "api_listener" {
 resource "aws_ecs_cluster" "fiap_cluster" {
   name = "fiap-cluster"
 }
+
+resource "aws_ecs_task_definition" "worker_task" {
+  family                   = "worker-task"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = "256"
+  memory                   = "512"
+  container_definitions    = jsonencode([{
+    name  = "worker"
+    image = "hello-world" # so um placeholder 
+  }])
+}
+
+resource "aws_ecs_service" "worker_service" {
+  name            = "worker-service"
+  cluster         = aws_ecs_cluster.fiap_cluster.id
+  task_definition = aws_ecs_task_definition.worker_task.arn
+  desired_count   = 1
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets          = data.aws_subnets.default.ids
+    assign_public_ip = true
+    security_groups  = [aws_security_group.fiap_sg.id]
+  }
+
+  lifecycle {
+    ignore_changes = [task_definition, desired_count]
+  }
+}
+
 
 resource "aws_appautoscaling_target" "worker_target" {
   max_capacity       = 10
