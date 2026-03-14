@@ -9,7 +9,7 @@ output "sqs_url" {
 }
 
 output "s3_bucket_name" {
-  value = aws_bucket.video_bucket.bucket
+  value = aws_s3_bucket.video_bucket.bucket
   description = "Nome do bucket S3"
 }
 
