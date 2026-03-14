@@ -42,20 +42,18 @@ jobs:
         working-directory: ./terraform
 
       - name: Inject Secrets into API and Worker Repos
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_PAT }}
         run: |
-          # Capturar os outputs do Terraform
+          # Captura os outputs
           RDS_HOST=$(terraform output -raw rds_endpoint)
           SQS_URL=$(terraform output -raw sqs_url)
           S3_BUCKET=$(terraform output -raw s3_bucket_name)
-
-          echo "${{ secrets.MY_PAT }}" | gh auth login --with-token
-
-          #Repositório api
+          
           gh secret set DB_HOST --body "$RDS_HOST" --repo "RafaelCAntunes/fiap-x-api"
           gh secret set S3_BUCKET_NAME --body "$S3_BUCKET" --repo "RafaelCAntunes/fiap-x-api"
           gh secret set SQS_QUEUE_URL --body "$SQS_URL" --repo "RafaelCAntunes/fiap-x-api"
-
-          #Repositório do Worker
+          
           gh secret set SQS_QUEUE_URL --body "$SQS_URL" --repo "RafaelCAntunes/fiap-x-worker"
           gh secret set DB_HOST --body "$RDS_HOST" --repo "RafaelCAntunes/fiap-x-worker"
           gh secret set S3_BUCKET_NAME --body "$S3_BUCKET" --repo "RafaelCAntunes/fiap-x-worker"
