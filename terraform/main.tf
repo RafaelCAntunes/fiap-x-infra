@@ -192,3 +192,22 @@ resource "aws_appautoscaling_policy" "worker_sqs_policy" {
     }
   }
 }
+
+resource "aws_ecr_repository" "api_repo" {
+  name                 = "fiap-x-api"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true 
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+resource "aws_ecr_repository" "worker_repo" {
+  name                 = "fiap-x-worker"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = true
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
