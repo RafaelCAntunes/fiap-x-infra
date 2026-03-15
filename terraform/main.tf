@@ -160,6 +160,42 @@ resource "aws_ecs_cluster" "fiap_cluster" {
   name = "fiap-cluster"
 }
 
+resource "aws_iam_role" "ecs_task_role" {
+  name = "ecs_task_api_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = { Service = "ecs-tasks.amazonaws.com" }
+    }]
+  })
+}
+
+# Permissões para Logs, S3 e SQS
+resource "aws_iam_role_policy" "ecs_task_permissions" {
+  name = "ecs_task_permissions"
+  role = aws_iam_role.ecs_task_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action   = ["logs:CreateLogStream", "logs:PutLogEvents"],
+        Effect   = "Allow",
+        Resource = "*"
+      },
+      {
+        Action   = ["s3:*", "sqs:*"],
+        Effect   = "Allow",
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+
 resource "aws_ecs_task_definition" "api_task" {
   family                   = "api-task"
   network_mode             = "awsvpc"
@@ -167,9 +203,11 @@ resource "aws_ecs_task_definition" "api_task" {
   cpu                      = "256"
   memory                   = "512"
   execution_role_arn       = aws_iam_role.ecs_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_role.arn 
   container_definitions    = jsonencode([{
     name  = "api"
     image = "877270730152.dkr.ecr.us-east-1.amazonaws.com/fiap-x-api:latest" 
+    command = ["./main"]
     portMappings = [{ containerPort = 8080, hostPort = 8080 }]
     environment = [
       { name = "DB_HOST", value = aws_db_instance.postgres.address },
@@ -222,10 +260,12 @@ resource "aws_ecs_task_definition" "worker_task" {
   requires_compatibilities = ["FARGATE"]
   cpu                      = "512" 
   memory                   = "1024"
-  execution_role_arn       = aws_iam_role.ecs_execution_role.arn  
+  execution_role_arn       = aws_iam_role.ecs_execution_role.arn
+  task_role_arn            = aws_iam_role.ecs_task_role.arn   
   container_definitions    = jsonencode([{
     name  = "worker"
     image = "877270730152.dkr.ecr.us-east-1.amazonaws.com/fiap-x-worker:latest"
+    command = ["./main"]
     environment = [
       { name = "DB_HOST", value = aws_db_instance.postgres.address },
       { name = "DB_NAME", value = "fiap_x_video_db" },
