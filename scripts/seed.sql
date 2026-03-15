@@ -23,6 +23,6 @@ INSERT INTO users (id, username, password, created_at)
 VALUES (
     'a7b8c9d0-e1f2-4a5b-8c9d-0e1f2a3b4c5d', 
     'rafael_admin', 
-    '$2a$10$7czAqCyFdWxjpJfMHid5AOVMSqOFm1ixtwKBTc6K8PspFbIkCVzIC', -- hash para a senha 'admin123'
+    '$2a$10$uLjZsI5ziUcXTWcmezGZrOfwq.PIAjalDCMOiIqW03h63aPPCHx.2', -- hash para a senha 'admin123' com cost factor de 10 (rafael do futuro vai agradecer)
     NOW()
 ) ON CONFLICT (username) DO NOTHING;
